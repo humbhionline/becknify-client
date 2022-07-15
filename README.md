@@ -1,7 +1,7 @@
 # Java Client for Becknify Apis.
 [Becknify](https://becknify.humbhionline.in) is an api platform to integrate with beckn networks.
 ## Usage 
-###/search:
+### /search:
 
 	Request request = new Request();
 		...Set the attributes...
@@ -16,7 +16,7 @@
         List<Request> onSearch = client.search(request); 
         //Has responsees from all bpps in the network.
 
-###/select:
+### /select:
 
 	Request request = new Request();
 		... Set Attributes....
