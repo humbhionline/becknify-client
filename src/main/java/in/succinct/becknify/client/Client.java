@@ -1,5 +1,6 @@
 package in.succinct.becknify.client;
 
+import com.venky.core.collections.IgnoreCaseMap;
 import in.succinct.beckn.Request;
 import in.succinct.beckn.Response;
 import in.succinct.beckn.Subscriber;
@@ -25,7 +26,9 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 
 public class Client {
@@ -35,7 +38,7 @@ public class Client {
     }
 
     String domain;
-    String domainRegex="[A-z,_]";
+    String domainRegex="[A-z,_]+";
     public Client domain(String domain){
         this.domain = domain;
         if (!domain.matches(domainRegex)){
@@ -222,17 +225,32 @@ public class Client {
         }
     }
 
+    public Map<String,String> headers(){
+        return new IgnoreCaseMap<>(){{
+            put("Accept-Encoding","gzip");
+            put("Content-Type","application/json");
+            put("X-CallBackToBeSynchronized","Y");
+            put("Authorization", String.format("Basic %s",basic));
+        }};
+    }
+
+    Map<String,String> responseHeaders = new IgnoreCaseMap<>();
+
+    public Map<String,String> getResponseHeaders(){
+        return responseHeaders;
+    }
+
     int status;
     public InputStream invoke(String action, String myRole, Request request,long timeoutMillis) throws URISyntaxException, IOException,InterruptedException {
         request.getContext().setAction(action);
         Builder curlBuilder = HttpRequest.newBuilder().uri(new URI(String.format("%s/%s",getAccessPointUrl(myRole),request.getContext().getAction())));
         byte[] parameterByteArray = request.getInner().toString().getBytes(StandardCharsets.UTF_8);
         curlBuilder.POST(BodyPublishers.ofByteArray(parameterByteArray));
-        curlBuilder.setHeader("Accept-Encoding", "gzip");
         curlBuilder.version(Version.HTTP_2);
-        curlBuilder.header("Authorization", String.format("Basic : %s",basic));
-        curlBuilder.header("Content-Type", "application/json");
-        curlBuilder.header("X-CallBackToBeSynchronized", "Y");
+        headers().forEach((k,v)->{
+            curlBuilder.header(k,v);
+        });
+
         curlBuilder.timeout(Duration.ofMillis(timeoutMillis));
 
         HttpRequest httpRequest  = curlBuilder.build();
@@ -240,7 +258,11 @@ public class Client {
 
         this.status = response.statusCode();
 
-        return response.headers().firstValue("Content-Encoding").isPresent() ? new GZIPInputStream(response.body()) : response.body();
+        response.headers().map().forEach((k,v)->{
+            responseHeaders.put(k,v.get(0));
+        });
+
+        return responseHeaders.containsKey("Content-Encoding") ? new GZIPInputStream(response.body()) : response.body();
     }
 
     public int getStatus() {
