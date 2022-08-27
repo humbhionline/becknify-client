@@ -243,6 +243,7 @@ public class Client {
     int status;
     public InputStream invoke(String action, String myRole, Request request,long timeoutMillis) throws URISyntaxException, IOException,InterruptedException {
         request.getContext().setAction(action);
+        request.getContext().setTtl(Math.max(2L,(long)Math.floor(timeoutMillis/1000.0) - 1));
         Builder curlBuilder = HttpRequest.newBuilder().uri(new URI(String.format("%s/%s",getAccessPointUrl(myRole),request.getContext().getAction())));
         byte[] parameterByteArray = request.getInner().toString().getBytes(StandardCharsets.UTF_8);
         curlBuilder.POST(BodyPublishers.ofByteArray(parameterByteArray));
