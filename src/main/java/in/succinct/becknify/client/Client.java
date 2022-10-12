@@ -215,10 +215,10 @@ public class Client {
             InputStream in = invoke(action,Subscriber.SUBSCRIBER_TYPE_BPP,request, timeoutMillis);
             JSONObject out = (JSONObject) JSONValue.parse(new InputStreamReader(in));
             JSONArray array = (JSONArray) out.get("responses");
-            if (array.size() > 0){
+            if (array != null && array.size() > 0){
                 return new Response((JSONObject) array.get(0));
             }else {
-                return new Response(new JSONObject());
+                return new Response(out);
             }
         }catch (Exception ex){
             throw new RuntimeException(ex);
@@ -243,7 +243,7 @@ public class Client {
     int status;
     public InputStream invoke(String action, String myRole, Request request,long timeoutMillis) throws URISyntaxException, IOException,InterruptedException {
         request.getContext().setAction(action);
-        request.getContext().setTtl(Math.max(2L,(long)Math.floor(timeoutMillis/1000.0) - 1));
+        request.getContext().setTtl(Math.max(2L,(long)Math.floor(timeoutMillis/900.0)));
         Builder curlBuilder = HttpRequest.newBuilder().uri(new URI(String.format("%s/%s",getAccessPointUrl(myRole),request.getContext().getAction())));
         byte[] parameterByteArray = request.getInner().toString().getBytes(StandardCharsets.UTF_8);
         curlBuilder.POST(BodyPublishers.ofByteArray(parameterByteArray));
